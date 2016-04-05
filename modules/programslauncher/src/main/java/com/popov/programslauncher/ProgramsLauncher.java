@@ -44,7 +44,6 @@ public class ProgramsLauncher extends AbstractVerticle{
             m.reply(new JsonArray(patternsList));
         });
 
-
         // Запуск окна настройки
         vertx.eventBus().consumer("cmd.programslauncher.settingup", m -> {
             Settings.main(new String[0]);

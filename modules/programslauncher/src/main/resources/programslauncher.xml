@@ -17,6 +17,9 @@
     <command id="cmd.programslauncher.showwindows">
         <pattern value="пока* [все] [запущенн*|открыт*] окна"/>
     </command>-->
-    <pattern name="cmd.programslauncher.launchPattern" value="fuzzy://event:cmd.programslauncher.launchPatterns"/>
+    <command id="cmd.programslauncher.launchPattern">
+        <pattern name="launchPattern" value="fuzzy://event:cmd.programslauncher.launchPatterns"/>
+    </command>
+
 
 </module>
