@@ -7,17 +7,13 @@ public class Program {
     private String name;
     private String pattern;
     private String path;
-    private int[] keyCode;
-    public Program(String name, String pattern, String path, int[] keyCode){
+    public Program(String name, String pattern, String path){
         this.name = name;
         this.pattern = pattern;
         this.path = path;
-        this.keyCode = keyCode;
     }
     public Program(){
     }
-
-
 
     public String getName() {
         return name;
@@ -41,13 +37,5 @@ public class Program {
 
     public void setPath(String path) {
         this.path = path;
-    }
-
-    public int[] getKeyCode() {
-        return keyCode;
-    }
-
-    public void setKeyCode(int[] keyCode) {
-        this.keyCode = keyCode;
     }
 }

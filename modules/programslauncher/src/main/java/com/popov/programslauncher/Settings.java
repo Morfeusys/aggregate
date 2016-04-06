@@ -4,6 +4,7 @@ package com.popov.programslauncher;
  * Created by popov on 23.03.2016.
  */
 
+import io.vertx.core.json.JsonObject;
 import javafx.application.Application;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -21,6 +22,8 @@ import java.awt.event.KeyEvent;
 import java.io.*;
 import java.lang.reflect.Field;
 import java.nio.charset.Charset;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.popov.programslauncher.ProgramsLauncher.getStackTrace;
 
@@ -34,6 +37,7 @@ public class Settings extends Application {
     private Object[] mass;
     private String settingsStr;
     private GridPane grid = new GridPane();
+    boolean isEdit = false;
     private ChoiceBox<String> keyChoiceBox = new ChoiceBox<>();
     Button done = new Button("Готово");
     String[][] keys = new String[2][java.awt.event.KeyEvent.class.getDeclaredFields().length];
@@ -87,53 +91,11 @@ public class Settings extends Application {
         choiceBox.setTooltip(new Tooltip("Тип действия"));
 
         choiceBox.setOnAction(event -> {
-            // Если выбрано "Командная строка"
-            if (choiceBox.getValue().equals("Командная строка")){
-                grid.getChildren().clear();
-                grid.add(choiceBox, 0, 0);
-                grid.addRow(1, addName, addPattern, addPath, add, delete, done);
-
-                TextField tx = (TextField) grid.getChildren().get(3);
-                tx.setPromptText("Команда");
-
-
-                // Если выбрано "Запуск программы"
-            } else if (choiceBox.getValue().equals("Запуск программы")){
-                grid.getChildren().clear();
-                grid.add(choiceBox, 0, 0);
-                grid.addRow(1, addName, addPattern, addPath, add, delete, done);
-
-                TextField tx = (TextField) grid.getChildren().get(3);
-                tx.setPromptText("Путь к файлу");
-
-
-                // Если выбрано "Эмуляция нажатия клавиш"
-            } else if (choiceBox.getValue().equals("Эмуляция нажатия клавиш")) {
-                grid.getChildren().clear();
-                grid.add(choiceBox, 0, 0);
-                grid.addRow(1, addName, addPattern, keyChoiceBox, add, delete, done);
-                // Заносим коды клавиш и их названия в массив
-                for (int i = 0; i < java.awt.event.KeyEvent.class.getDeclaredFields().length; i++) {
-                    Field field = KeyEvent.class.getDeclaredFields()[i];
-                    try {
-                        keys[0][i] = String.valueOf(field.getInt(keys));
-                        keys[1][i] = KeyEvent.getKeyText(field.getInt(keys));
-                    } catch (Exception e) {
-                        e.getStackTrace();
-                    }
-                }
-
-                // Добавляем кнопки в выпадающее меню
-                for (int i = 0; i < keys[1].length; i++) {
-                    if (keys[1][i] == null) keys[1][i] = "Нет такой клавиши";
-                    keyChoiceBox.getItems().add(keys[1][i]);
-                }
-
-            }
+            choosingProgramType(choiceBox);
         });
 
         // Кнопки "добавить", "удалить", "готово"
-        add.setOnAction(event -> addItem(choiceBox));
+        add.setOnAction(event -> addItem(choiceBox, isEdit));
         delete.setOnAction(event -> {
             Program selectedItem = table.getSelectionModel().getSelectedItem();
             /*if (selectedItem.getName().equals("Paint") ||
@@ -145,6 +107,7 @@ public class Settings extends Application {
             else*/ table.getItems().remove(table.getSelectionModel().getSelectedItem());
         });
 
+
         done.setOnAction(event -> {
             mass = table.getItems().toArray();
 
@@ -154,18 +117,12 @@ public class Settings extends Application {
                 if (i == 0) { // Чтобы не было null
                     settingsStr = writingProgram.getName() + "\n" +
                             writingProgram.getPattern() + "\n" +
-                            writingProgram.getPath() + "\n" +
-                            writingProgram.getKeyCode()[0] + "\n" +
-                            writingProgram.getKeyCode()[1] + "\n" +
-                            writingProgram.getKeyCode()[2] + "\n";
+                            writingProgram.getPath() + "\n";
                 } else {
                     settingsStr = settingsStr +
                             writingProgram.getName() + "\n" +
                             writingProgram.getPattern() + "\n" +
-                            writingProgram.getPath() + "\n" +
-                            writingProgram.getKeyCode()[0] + "\n" +
-                            writingProgram.getKeyCode()[1] + "\n" +
-                            writingProgram.getKeyCode()[2] + "\n";
+                            writingProgram.getPath() + "\n";
                 }
             }
 
@@ -212,6 +169,31 @@ public class Settings extends Application {
         table.setItems(getProgram());
         table.getColumns().addAll(nameColumn, patternColumn, pathColumn);
 
+        table.getSelectionModel().selectedItemProperty().addListener((observableValue, oldValue, newValue) -> {
+            //Check whether item is selected and set value of selected item to Label
+            if (table.getSelectionModel().getSelectedItem() != null) {
+                Program selectedProgramm = table.getSelectionModel().getSelectedItem();
+
+                // Выставляем нужный тип функции в choiceBox
+                /* По умолчанию */choiceBox.setValue("Запуск программы");
+                if (selectedProgramm.getPath().endsWith("/cmd")) choiceBox.setValue("Командная строка");
+                if (selectedProgramm.getPath().endsWith("/key"))choiceBox.setValue("Эмуляция нажатия клавиш");
+
+                choosingProgramType(choiceBox);
+
+                if (selectedProgramm.getPath().endsWith("/cmd")) {
+                    selectedProgramm.setPath(selectedProgramm.getPath().replace("/cmd", ""));
+                }
+                addName.setText(selectedProgramm.getName());
+                addPattern.setText(selectedProgramm.getPattern());
+                addPath.setText(selectedProgramm.getPath());
+
+                if (selectedProgramm.getPath().endsWith("/key")) {
+                    JsonObject k = new JsonObject(selectedProgramm.getPath().replace("/key", ""));
+                    keyChoiceBox.setValue((String) k.getMap().keySet().toArray()[0]);
+                }
+            }
+        });
 
         VBox vBox = new VBox(table, grid);
 
@@ -225,19 +207,26 @@ public class Settings extends Application {
         primaryStage.show();
     }
 
-    public void addItem(ChoiceBox<String> choiceBox) {
+    public void addItem(ChoiceBox<String> choiceBox, boolean isEdit) {
         int indexOfElement = 0;
         if (!addName.getText().equals("") && !addPattern.getText().equals("")) {
+
             if (choiceBox.getValue().equals("Эмуляция нажатия клавиш")) {
-                addPath.setText(keyChoiceBox.getValue() + "/key");
+
+                Map<String, Object> keysMap = new HashMap<>();
+                // Узнаём код выбранной клавиши
+                for (int i = 0; i < keyChoiceBox.getItems().size(); i++) {
+                    if (keyChoiceBox.getItems().get(i).equals(keyChoiceBox.getValue())) indexOfElement = i;
+                }
+                keysMap.put(keyChoiceBox.getValue(), Integer.valueOf(keys[0][indexOfElement]));
+
+                JsonObject keys = new JsonObject(keysMap);
+                addPath.setText(keys.encode() + "/key");
                 if (keyChoiceBox.getValue() == null || keyChoiceBox.getValue().equals("")) {
                     showAlert(Alert.AlertType.ERROR, "Ошибка", "Введите правильные значения !");
                     return;
                 }
 
-                for (int i = 0; i < keyChoiceBox.getItems().size(); i++) {
-                    if (keyChoiceBox.getItems().get(i).equals(keyChoiceBox.getValue())) indexOfElement = i;
-                }
 
             }else {
                 if (addPath.getText().equals("")){
@@ -251,14 +240,10 @@ public class Settings extends Application {
             }
 
             Program program;
-            if (choiceBox.getValue().equals("Эмуляция нажатия клавиш")) {
-                program = new Program(addName.getText(), addPattern.getText(), addPath.getText(),
-                        new int[]{
-                                Integer.parseInt(keys[0][indexOfElement]), 0, 0
-                        }
-                );
-            } else {
-                program = new Program(addName.getText(), addPattern.getText(), addPath.getText(), new int[]{0, 0, 0});
+            program = new Program(addName.getText(), addPattern.getText(), addPath.getText());
+
+            if (isEdit) {
+                table.getItems().remove(table.getSelectionModel().getSelectedIndex());
             }
             table.getItems().add(program);
             addName.clear();
@@ -270,19 +255,61 @@ public class Settings extends Application {
         }
     }
 
+    private void choosingProgramType(ChoiceBox<String> choiceBox) {
+        // Если выбрано "Командная строка"
+        if (choiceBox.getValue().equals("Командная строка")){
+            grid.getChildren().clear();
+            grid.add(choiceBox, 0, 0);
+            grid.addRow(1, addName, addPattern, addPath, add, delete, done);
+
+            TextField tx = (TextField) grid.getChildren().get(3);
+            tx.setPromptText("Команда");
+
+
+            // Если выбрано "Запуск программы"
+        } else if (choiceBox.getValue().equals("Запуск программы")){
+            grid.getChildren().clear();
+            grid.add(choiceBox, 0, 0);
+            grid.addRow(1, addName, addPattern, addPath, add, delete, done);
+
+            TextField tx = (TextField) grid.getChildren().get(3);
+            tx.setPromptText("Путь к файлу");
+
+
+            // Если выбрано "Эмуляция нажатия клавиш"
+        } else if (choiceBox.getValue().equals("Эмуляция нажатия клавиш")) {
+            grid.getChildren().clear();
+            grid.add(choiceBox, 0, 0);
+            grid.addRow(1, addName, addPattern, keyChoiceBox, add, delete, done);
+            // Заносим коды клавиш и их названия в массив
+            for (int i = 0; i < KeyEvent.class.getDeclaredFields().length; i++) {
+                Field field = KeyEvent.class.getDeclaredFields()[i];
+                try {
+                    keys[0][i] = String.valueOf(field.getInt(keys));
+                    keys[1][i] = KeyEvent.getKeyText(field.getInt(keys));
+                } catch (Exception e) {
+                    e.getStackTrace();
+                }
+            }
+
+            // Добавляем кнопки в выпадающее меню
+            for (int i = 0; i < keys[1].length; i++) {
+                if (keys[1][i] == null) keys[1][i] = "Нет такой клавиши";
+                keyChoiceBox.getItems().add(keys[1][i]);
+            }
+
+        }
+    }
+
     public ObservableList<Program> getProgram() {
         ObservableList<Program> programs = FXCollections.observableArrayList();
-        /*programs.add(new Program("Блокнот", "(откр*|пока*|запуст*) (блокнот|текстов* редактор*)", "notepad.exe", new int[]{0, 0, 0}));
-        programs.add(new Program("Paint", "(откр*|пока*|запуст*) (графическ* редактор*|редактор* (картин*|изображ*)|Point|Paint)", "mspaint.exe", new int[]{0, 0, 0}));
-        programs.add(new Program("Редактор реестра", "(откр*|пока*|запуст*) (реестр|редактор* реестр*)", "regedit.exe", new int[]{0, 0, 0}));
-        programs.add(new Program("Калькулятор", "(откр*|пока*|запуст*) калькулятор*", "calc.exe", new int[]{0, 0, 0}));*/
         try {
             programs.addAll(loadFromFile(new File(settingsPath, "settings.set")));
         } catch (Exception e) {
-            programs.add(new Program("Блокнот", "(откр*|пока*|запуст*) (блокнот|текстов* редактор*)", "notepad.exe", new int[]{0, 0, 0}));
-            programs.add(new Program("Paint", "(откр*|пока*|запуст*) (графическ* редактор*|редактор* (картин*|изображ*)|Point|Paint)", "mspaint.exe", new int[]{0, 0, 0}));
-            programs.add(new Program("Редактор реестра", "(откр*|пока*|запуст*) (реестр|редактор* реестр*)", "regedit.exe", new int[]{0, 0, 0}));
-            programs.add(new Program("Калькулятор", "(откр*|пока*|запуст*) калькулятор*", "calc.exe", new int[]{0, 0, 0}));
+            programs.add(new Program("Блокнот", "(откр*|пока*|запуст*) (блокнот|текстов* редактор*)", "notepad.exe"));
+            programs.add(new Program("Paint", "(откр*|пока*|запуст*) (графическ* редактор*|редактор* (картин*|изображ*)|Point|Paint)", "mspaint.exe"));
+            programs.add(new Program("Редактор реестра", "(откр*|пока*|запуст*) (реестр|редактор* реестр*)", "regedit.exe"));
+            programs.add(new Program("Калькулятор", "(откр*|пока*|запуст*) калькулятор*", "calc.exe"));
         }
         return programs;
     }
@@ -311,25 +338,25 @@ public class Settings extends Application {
         return lineCount;
     }
     public static Program[] loadFromFile(File file) throws Exception {
-        Program[] loadedSettings = new Program[lineCounter(file) / 5];// т.к. строк на одну настройку - 5
+        Program[] loadedSettings = new Program[lineCounter(file) / 3];// т.к. строк на одну настройку - 5
         if (file != null) {
             BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(file), Charset.forName("UTF-8")));
 
             // За один проход цикла создаем настройку и ставим ей имя, шаблон и путь
             for (int j = 0; j < loadedSettings.length; j++) {
                 try {
-                    loadedSettings[j] = new Program(br.readLine(), br.readLine(), br.readLine(),
-                            new int[]{Integer.parseInt(br.readLine()), Integer.parseInt(br.readLine()), Integer.parseInt(br.readLine())});
+                    loadedSettings[j] = new Program(br.readLine(), br.readLine(), br.readLine());
                 } catch (Exception e) {}
             }
+
         }
-        Program[] finalLoadedSettings = new Program[loadedSettings.length - 1];
+        /*Program[] finalLoadedSettings = new Program[loadedSettings.length - 1];
         for (int i = 0; i < loadedSettings.length; i++) {
             if ((loadedSettings.length - 1) == i){
                 break;
             }
-            finalLoadedSettings[i] = new Program(loadedSettings[i].getName(), loadedSettings[i].getPattern(), loadedSettings[i].getPath(), loadedSettings[i].getKeyCode());
-        }
-        return finalLoadedSettings;
+            finalLoadedSettings[i] = new Program(loadedSettings[i].getName(), loadedSettings[i].getPattern(), loadedSettings[i].getPath());
+        }*/
+        return loadedSettings;
     }
 }

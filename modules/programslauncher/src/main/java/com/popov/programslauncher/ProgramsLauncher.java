@@ -15,6 +15,7 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.KeyEvent;
 import java.io.*;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -36,6 +37,9 @@ public class ProgramsLauncher extends AbstractVerticle{
         // Загруженные настройки
         try {
             loadedSettings = loadFromFile(settings/*, f*/);
+            for (int i = 0; i < loadedSettings.length; i++) {
+                log.info("loadedPattern: " + loadedSettings[i].getPattern());
+            }
         } catch (Exception e) {
             /*f.fail(e);*/
             log.error("CANNOT LOAD FROM FILE !!!");
@@ -57,12 +61,27 @@ public class ProgramsLauncher extends AbstractVerticle{
             Program loadedProg = loadedSettings[Integer.parseInt(responseSpeech.value)];
 
             if (loadedProg.getPath().endsWith("/cmd")){
-                executeCmd(loadedProg.getPath().replace("/cmd", ""));// TODO криво
+                executeCmd(loadedProg.getPath().replace("/cmd", ""));// т. к. в имени самого файла не может содержаться slash
+                // если "эмуляция нажатий", то получаем keyCode из json и нажимаем
             }else if (loadedProg.getPath().endsWith("/key")){
                 try {
+                    JsonObject keys = new JsonObject(loadedProg.getPath().replace("/key", ""));
+                    Collection<Object> keyCodes = keys.getMap().values();
+
+                    // Нажимаем кнопки
                     Robot robot = new Robot();
-                    robot.keyPress(loadedProg.getKeyCode()[0]);
-                    robot.keyRelease(loadedProg.getKeyCode()[0]);
+                    robot.keyPress((Integer) keyCodes.toArray()[0]);
+                    robot.keyRelease((Integer) keyCodes.toArray()[0]);
+
+                    if (keyCodes.toArray().length >= 2) {
+                        robot.keyPress((Integer) keyCodes.toArray()[1]);
+                        robot.keyRelease((Integer) keyCodes.toArray()[1]);
+                    }
+                    if (keyCodes.toArray().length >= 3) {
+                        robot.keyPress((Integer) keyCodes.toArray()[2]);
+                        robot.keyRelease((Integer) keyCodes.toArray()[2]);
+                    }
+
                 } catch (AWTException e) {
                     log.error(e);
                 }
