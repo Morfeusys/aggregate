@@ -229,7 +229,7 @@ public class Settings extends Application {
         int indexOfElement = 0;
         if (!addName.getText().equals("") && !addPattern.getText().equals("")) {
             if (choiceBox.getValue().equals("Эмуляция нажатия клавиш")) {
-                addPath.setText(keyChoiceBox.getValue() + "-key");
+                addPath.setText(keyChoiceBox.getValue() + "/key");
                 if (keyChoiceBox.getValue() == null || keyChoiceBox.getValue().equals("")) {
                     showAlert(Alert.AlertType.ERROR, "Ошибка", "Введите правильные значения !");
                     return;
@@ -247,7 +247,7 @@ public class Settings extends Application {
             }
 
             if (choiceBox.getValue().equals("Командная строка")) {
-                addPath.setText(addPath.getText() + "-cmd");
+                addPath.setText(addPath.getText() + "/cmd");
             }
 
             Program program;

@@ -1,8 +1,10 @@
 package com.popov.programslauncher;
 
+import com.aggregate.api.Markup;
+import com.aggregate.api.Request;
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Future;
-import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
@@ -13,7 +15,8 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.datatransfer.Transferable;
 import java.awt.event.KeyEvent;
 import java.io.*;
-import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 import static com.popov.programslauncher.Settings.loadFromFile;
 
@@ -23,6 +26,7 @@ public class ProgramsLauncher extends AbstractVerticle{
     private static Robot robot;
     String pathToFile = "";
     private Program[] loadedSettings;
+    private Markup responseSpeech;
 
     @Override
     public void start(/*Future<Void> f*/) throws Exception {
@@ -37,51 +41,36 @@ public class ProgramsLauncher extends AbstractVerticle{
             log.error("CANNOT LOAD FROM FILE !!!");
         }
 
+        // Отправляем список шаблонов в агрегат
         vertx.eventBus().consumer("cmd.programslauncher.launchPatterns", m -> {
-            java.util.List<String> patternsList = new ArrayList<String>();
-            patternsList.add("Браузер");
-            patternsList.add("Калькулятор");
-            m.reply(new JsonArray(patternsList));
+            Map<String, Object> patternsMap = new HashMap<>();
+
+            for(int i = 0; i < loadedSettings.length; i++) {
+              patternsMap.put(loadedSettings[i].getPattern(), i);
+            }
+            m.reply(new JsonObject(patternsMap));
         });
 
-        // Запуск окна настройки
-        vertx.eventBus().consumer("cmd.programslauncher.settingup", m -> {
-            Settings.main(new String[0]);
-            /*f.complete();*/
-        });
-        // Блокнот
-        vertx.eventBus().consumer("cmd.programslauncher.notepad", m -> {
-            executeCmd(loadedSettings[0].getPath()/*, f*/);
-            /*f.complete();*/
-        });
-        // Paint
-        vertx.eventBus().consumer("cmd.programslauncher.paint", m -> {
-            executeCmd("start \"\" \"" + loadedSettings[1].getPath() + "\""/*, f*/);
-            /*f.complete();*/
-        });
-        // Редактор реестра
-        vertx.eventBus().consumer("cmd.programslauncher.regedit", m -> {
-            executeCmd("start \"\" \"" + loadedSettings[2].getPath() + "\""/*, f*/);
-            /*f.complete();*/
-        });
-        // Калькулятор
-        vertx.eventBus().consumer("cmd.programslauncher.calc", m -> {
-            executeCmd("start \"\" \"" + loadedSettings[3].getPath() + "\""/*, f*/);
-            /*f.complete();*/
-        });
-        vertx.eventBus().consumer("cmd.programslauncher.showwindows", m -> {
-            try {
-                Robot robot = new Robot();
-                robot.keyPress(KeyEvent.VK_WINDOWS);
-                robot.keyPress(KeyEvent.VK_TAB);
-                robot.delay(10);
-                robot.keyRelease(KeyEvent.VK_WINDOWS);
-                robot.keyRelease(KeyEvent.VK_TAB);
-            } catch (AWTException e) {
-                log.error(e);
+        vertx.eventBus().consumer("cmd.programslauncher.launchPattern", m ->{
+            responseSpeech = Request.fromMessage(m).markup.get("launchPattern");
+            log.info("Ты сказал: " + responseSpeech.value);
+            Program loadedProg = loadedSettings[Integer.parseInt(responseSpeech.value)];
+
+            if (loadedProg.getPath().endsWith("/cmd")){
+                executeCmd(loadedProg.getPath().replace("/cmd", ""));// TODO криво
+            }else if (loadedProg.getPath().endsWith("/key")){
+                try {
+                    Robot robot = new Robot();
+                    robot.keyPress(loadedProg.getKeyCode()[0]);
+                    robot.keyRelease(loadedProg.getKeyCode()[0]);
+                } catch (AWTException e) {
+                    log.error(e);
+                }
+            }else{
+                executeCmd("start \"\" " + loadedProg.getPath());
+                log.info("starting " + loadedProg.getPath() + " ...");
             }
 
-            /*f.complete();*/
         });
 
         KeyEvent d = new KeyEvent(new Component() {
@@ -91,6 +80,11 @@ public class ProgramsLauncher extends AbstractVerticle{
             }
         }, 1, 1, 0,10 /*key code*/, KeyEvent.CHAR_UNDEFINED, KeyEvent.KEY_LOCATION_UNKNOWN);
 
+        // Запуск окна настройки
+        vertx.eventBus().consumer("cmd.programslauncher.settingup", m -> {
+            Settings.main(new String[0]);
+            /*f.complete();*/
+        });
     }
 
 
@@ -100,6 +94,7 @@ public class ProgramsLauncher extends AbstractVerticle{
                 "cmd.exe", "/c", command);
         builder.redirectErrorStream(true);
         try {
+            log.info("cmd command is: " + command);
             builder.start();
         } catch (IOException e) {
            /*f.fail(e);*/
@@ -169,3 +164,37 @@ public class ProgramsLauncher extends AbstractVerticle{
         return result;
     }
 }
+        /*// Блокнот
+        vertx.eventBus().consumer("cmd.programslauncher.notepad", m -> {
+            executeCmd(loadedSettings[0].getPath()*//*, f*//*);
+            *//*f.complete();*//*
+        });
+        // Paint
+        vertx.eventBus().consumer("cmd.programslauncher.paint", m -> {
+            executeCmd("start \"\" \"" + loadedSettings[1].getPath() + "\""*//*, f*//*);
+            *//*f.complete();*//*
+        });
+        // Редактор реестра
+        vertx.eventBus().consumer("cmd.programslauncher.regedit", m -> {
+            executeCmd("start \"\" \"" + loadedSettings[2].getPath() + "\""*//*, f*//*);
+            *//*f.complete();*//*
+        });
+        // Калькулятор
+        vertx.eventBus().consumer("cmd.programslauncher.calc", m -> {
+            executeCmd("start \"\" \"" + loadedSettings[3].getPath() + "\""*//*, f*//*);
+            *//*f.complete();*//*
+        });
+        vertx.eventBus().consumer("cmd.programslauncher.showwindows", m -> {
+            try {
+                Robot robot = new Robot();
+                robot.keyPress(KeyEvent.VK_WINDOWS);
+                robot.keyPress(KeyEvent.VK_TAB);
+                robot.delay(10);
+                robot.keyRelease(KeyEvent.VK_WINDOWS);
+                robot.keyRelease(KeyEvent.VK_TAB);
+            } catch (AWTException e) {
+                log.error(e);
+            }
+
+            *//*f.complete();*//*
+        });*/
