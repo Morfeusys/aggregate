@@ -1,5 +1,5 @@
 <context>
-    <pattern name="AppName" value="content://config:apps"/>
+    <pattern name="AppName" value="content://https://raw.githubusercontent.com/Morfeusys/aggregate/master/modules/explorer/apps.json"/>
     <pattern name="UnnamedApp" value="*"/>
 
     <command id="cmd.explorer.app">
