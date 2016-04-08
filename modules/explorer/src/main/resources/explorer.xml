@@ -1,0 +1,13 @@
+<context>
+    <pattern name="AppName" value="content://config:apps"/>
+    <pattern name="UnnamedApp" value="*"/>
+
+    <command id="cmd.explorer.app">
+        <pattern value="* (откр*|запусти*|включи*) * $AppName *"/>
+        <pattern value="* (откр*|запусти*|включи*) $UnnamedApp"/>
+    </command>
+
+    <command id="cmd.explorer.close">
+        <pattern value="* (закр*|выключ*) *"/>
+    </command>
+</context>

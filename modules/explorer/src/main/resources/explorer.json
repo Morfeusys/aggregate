@@ -1,0 +1,10 @@
+{
+  "main" : "com.aggregate.explorer.ExplorerVerticle",
+  "options" : {
+    "config" : {
+      "apps" : {
+        "хром" : "chrome", "опер*" : "opera"
+      }
+    }
+  }
+}
