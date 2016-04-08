@@ -8,8 +8,6 @@ import io.vertx.core.eventbus.Message;
 import java.awt.*;
 import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
-import java.util.Arrays;
-import java.util.Collections;
 
 import static java.awt.event.KeyEvent.*;
 
@@ -17,7 +15,8 @@ import static java.awt.event.KeyEvent.*;
  * Created by morfeusys on 07.04.16.
  */
 public class ExplorerVerticle extends AbstractVerticle {
-    private static final String PATTERN_APP_NAME = "AppName";
+    private static final String PATTERN_LOCAL_APP_NAME = "LocalAppName";
+    private static final String PATTERN_REMOTE_APP_NAME = "RemoteAppName";
     private static final String PATTERN_UNNAMED_APP = "UnnamedApp";
 
     private Robot robot;
@@ -32,9 +31,10 @@ public class ExplorerVerticle extends AbstractVerticle {
 
     private void runApp(Message msg) {
         Request request = Request.fromMessage(msg);
-        Markup app = request.markup.get(PATTERN_APP_NAME);
+        Markup app = request.markup.get(PATTERN_LOCAL_APP_NAME);
+        if (app == null) app = request.markup.get(PATTERN_REMOTE_APP_NAME);
         if (app == null) app = request.markup.get(PATTERN_UNNAMED_APP);
-        search(app.value != null ? app.value : app.source);
+        search(app.value != null && !app.value.isEmpty() ? app.value : app.source);
     }
 
     private void closeApp(Message msg) {
