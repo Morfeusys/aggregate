@@ -1,0 +1,25 @@
+<context>
+    <pattern name="LocalAppName" value="content://event:cmd.programslauncher.launchPatterns"/>
+    <!--<pattern name="AppName" value="fuzzy://config:appsList"/>-->
+    <pattern name="RemoteAppName" value="content://https://raw.githubusercontent.com/Morfeusys/aggregate/master/modules/explorer/apps.json"/>
+    <pattern name="UnnamedApp" value="*"/>
+    <pattern name="CustomPattern" value="content://event:cmd.programslauncher.launchPatterns"/>
+
+    <command id="cmd.explorer.app.open">
+        <pattern value="* (откр*|запусти*|включи*) $LocalAppName *"/>
+        <pattern value="* (откр*|запусти*|включи*) $RemoteAppName *"/>
+        <pattern value="* (откр*|запусти*|включи*) $UnnamedApp"/>
+    </command>
+
+    <command id="cmd.explorer.custom">
+        <pattern value="$CustomPattern"/>
+    </command>
+
+    <command id="cmd.programslauncher.settingup">
+        <pattern value="* настро* (модул*|скрипт*) открыт* програ*"/>
+    </command>
+
+    <command id="cmd.explorer.close">
+        <pattern value="* (закр*|выключ*) *"/>
+    </command>
+</context>
