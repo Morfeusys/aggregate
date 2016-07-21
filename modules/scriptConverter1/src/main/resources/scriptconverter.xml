@@ -1,0 +1,18 @@
+<context>
+
+    <command id="cmd.Pattern1">
+        <pattern value="текст 1 шаблон"/>
+    </command>
+
+    <command id="cmd.Pattern2">
+        <pattern value="текст $Text"/>
+    </command>
+
+    <pattern name="DialogPattern" value="content://event:cmd.GetDialogPattern"/>
+
+    <context id="cmd.DialogContext">
+        <command id="cmd.DialogCommand">
+            <pattern value="$DialogPattern"/>
+        </command>
+    </context>
+</context>
