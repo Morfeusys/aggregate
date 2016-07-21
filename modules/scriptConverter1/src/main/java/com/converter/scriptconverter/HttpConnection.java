@@ -15,7 +15,7 @@ import java.net.URL;
 
 public class HttpConnection {
 
-    public static void main(String[] args) throws Exception {
+    /*public static void main(String[] args) throws Exception {
 
         HttpConnection http = new HttpConnection();
 
@@ -23,7 +23,7 @@ public class HttpConnection {
         System.out.println(http.sendPost("https://zenbot.org/api/IS1MsuMUvoZoypbn?text=Hello", "{\"text\":\"Hello\",\"vars\":[{\"name\":\"string\",\"value\":\"popov_anton\"}]}").toJSONString());
 
 
-    }
+    }*/
 
     public static JSONObject sendPost(String urlString, String json) {
         String output = null;

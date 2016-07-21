@@ -40,7 +40,7 @@ public class MicroMethods {
 
         System.out.println("Send Http POST request");
         try {
-            http.sendPost("https://zenbot.org/bots/IS1MsuMUvoZoypbn", "{\"text\":\"Hello\",\"vars\":[{\"name\":\"string\",\"value\":\"popov_anton\"}]}");
+            //http.sendPost("https://zenbot.org/bots/IS1MsuMUvoZoypbn", "{\"text\":\"Hello\",\"vars\":[{\"name\":\"string\",\"value\":\"popov_anton\"}]}");
         } catch (Exception e) {
             log.error(e.getMessage());
         }

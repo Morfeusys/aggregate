@@ -33,7 +33,7 @@ public class ScriptConverter extends AbstractVerticle {
 
         vertx.eventBus().consumer("cmd.GetDialogPattern", m -> {
             log.info("\n\nGetDialogPattern called\n\n");
-            m.reply(new JsonObject("{\"контек*|коньки\" : 1, \"пока\" : 2}")); // // TODO unknown error on setting DialogPattern (appeared after adding context)
+            m.reply(new JsonObject("{\"контек*|коньки\" : 1, \"пока\" : 2}")); // // fixme unknown error on setting DialogPattern (appeared after adding context)
         });
 
         vertx.eventBus().consumer("cmd.Pattern1", m -> {
@@ -77,6 +77,9 @@ public class ScriptConverter extends AbstractVerticle {
         vars.put("response_text", "");
         vars.put("response_speech", "");
         vars.put("Contact", "");// TODO google contacts api (HTTP requests)
+        vars.put("Hello", "дорогой пользователь"); // for testing purposes
+
+        
     }
 
     private void executeActions(Message m) {
@@ -92,7 +95,9 @@ public class ScriptConverter extends AbstractVerticle {
 
 
     private void executeCommandAction1(Message m) {
-        String reply = "";
+        String command = "";
+        command = variablesSubstitution(command);
+
 
         vars.put("response_text", "");
         vars.put("response_speech", "");
@@ -101,7 +106,8 @@ public class ScriptConverter extends AbstractVerticle {
 
     private void executeTtsAction1(Message m) {
         String reply = "";
-        String[] texts = {"Привет", "Привет привет"};
+        String[] texts = {"Привет $Hello", "Привет привет $Hello"};
+        texts = variablesSubstitution(texts);
         reply += texts[(int) (Math.random() * texts.length)];
         say(reply);
 
@@ -113,11 +119,12 @@ public class ScriptConverter extends AbstractVerticle {
     private void executeDialogAction1(Message m) {
         String[] patterns = {"привет", "пока"};
         String[] texts = {"1 ответ в диалоге", "2 ответ в диалоге"};
+        texts = variablesSubstitution(texts);
         String reply = texts[(int) (Math.random() * texts.length)];
 
         vertx.eventBus().send("response", new Response(reply, "cmd.DialogContext", true));
 
-        vars.put("response_text", reply); // TODO difference between text & speech
+        vars.put("response_text", reply);
         vars.put("response_speech", reply);
 
         // updatePattern(patterns.toJson());
@@ -135,6 +142,7 @@ public class ScriptConverter extends AbstractVerticle {
     }
 
     private void executeIftttAction1(Message m) {
+
         isDoneIftttAction1 = true;
     }
 
@@ -142,10 +150,8 @@ public class ScriptConverter extends AbstractVerticle {
         String var = "";
         String value = "jkhk";
 
-        Object[] varsArray = vars.keySet().toArray();
-        for (int i = 0; i < vars.size(); i++) {
-            value = value.replace("$" + varsArray[i], vars.get(varsArray[i]));
-        }
+        value = variablesSubstitution(value);
+        MicroMethods.evaluateExpression(value);
 
         vars.put(var, value);
         isDoneStorageAction1 = true;
@@ -160,6 +166,25 @@ public class ScriptConverter extends AbstractVerticle {
         isDoneHttpAction1 = false;
         isDoneIftttAction1 = false;
         isDoneStorageAction1 = false;
+    }
+
+    private String variablesSubstitution(String replacingText){
+        Object[] varsArray = vars.keySet().toArray();
+
+        for (int i = 0; i < vars.size(); i++) {
+            replacingText = replacingText.replace("$" + varsArray[i], vars.get(varsArray[i]));
+        }
+        return replacingText;
+    }
+
+    private String[] variablesSubstitution(String[] replacingText){
+        Object[] varsArray = vars.keySet().toArray();
+        for (int i = 0; i < replacingText.length; i++) {
+            for (int j = 0; j < vars.size(); j++) {
+                replacingText[i] = replacingText[i].replace("$" + varsArray[j], vars.get(varsArray[j]));
+            }
+        }
+        return replacingText;
     }
 
     private void say(String text) {
