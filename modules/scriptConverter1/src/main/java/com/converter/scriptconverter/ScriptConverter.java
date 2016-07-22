@@ -11,6 +11,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -79,7 +80,6 @@ public class ScriptConverter extends AbstractVerticle {
         vars.put("response_text", "");
         vars.put("response_speech", "");
         vars.put("Contact", "");// TODO google contacts api (HTTP requests)
-        vars.put("Hello", "дорогой пользователь"); // for testing purposes
 
         for (Markup markup : Request.fromMessage(m).markup.children) {
 
@@ -117,11 +117,11 @@ public class ScriptConverter extends AbstractVerticle {
     private void executeActions(Message m) {
         isSuspended = false;
         if (!isDoneCommandAction1 && !isSuspended) executeCommandAction1(m);
-        if (!isDoneStorageAction1 && !isSuspended) executeStorageAction1(m);
         if (!isDoneTtsAction1 && !isSuspended) executeTtsAction1(m);
         if (!isDoneDialogAction1 && !isSuspended) executeDialogAction1(m);
         if (!isDoneHttpAction1 && !isSuspended) executeHttpAction1(m);
         if (!isDoneIftttAction1 && !isSuspended) executeIftttAction1(m);
+        if (!isDoneStorageAction1 && !isSuspended) executeStorageAction1(m);
         scriptCompleted();
     }
 
@@ -161,7 +161,7 @@ public class ScriptConverter extends AbstractVerticle {
 
         // updatePattern(patterns.toJson());
         isDoneDialogAction1 = true;
-        suspendActionsExecution();
+        //suspendActionsExecution();
     }
 
     private void executeIntentAction1(Message m) {
@@ -179,8 +179,8 @@ public class ScriptConverter extends AbstractVerticle {
     }
 
     private void executeStorageAction1(Message m) {
-        String var = "";
-        String value = "upper low text";
+        String var = "Hello";
+        String value = "upper(low text)";
 
         value = variablesSubstitution(value);
         value = MicroMethods.evaluateExpression(value);
@@ -204,6 +204,9 @@ public class ScriptConverter extends AbstractVerticle {
     private String variablesSubstitution(String replacingText) {
         Object[] varsArray = vars.keySet().toArray();
 
+        // sort by variable length
+        Arrays.sort(varsArray, (o1, o2) -> ((String) o2).length() - ((String) o1).length());
+
         for (int i = 0; i < vars.size(); i++) {
             replacingText = replacingText.replace("$" + varsArray[i], vars.get(varsArray[i]) == null ? "" : vars.get(varsArray[i]));
         }
@@ -212,9 +215,13 @@ public class ScriptConverter extends AbstractVerticle {
 
     private String[] variablesSubstitution(String[] replacingText) {
         Object[] varsArray = vars.keySet().toArray();
+
+        // sort by variable length
+        Arrays.sort(varsArray, (o1, o2) -> ((String) o2).length() - ((String) o1).length());
+
         for (int i = 0; i < replacingText.length; i++) {
             for (int j = 0; j < vars.size(); j++) {
-                replacingText[i] = replacingText[i].replace("$" + varsArray[j], vars.get(varsArray[i]) == null ? "" : vars.get(varsArray[i]));
+                replacingText[i] = replacingText[i].replace("$" + varsArray[j], vars.get(varsArray[j]) == null ? "" : vars.get(varsArray[j]));
             }
         }
         return replacingText;
@@ -228,14 +235,3 @@ public class ScriptConverter extends AbstractVerticle {
         this.isSuspended = true;
     }
 }
-
-/* {
-    "text": "evaluate expression",
-	"vars": [
-		{
-			"name": "Expression",
-			"value": "test_response"
-		}
-	]
-}
-*/
