@@ -1,7 +1,7 @@
 <context>
 
     <command id="cmd.Pattern1">
-        <pattern value="текст 1 шаблон"/>
+        <pattern value="$Date"/>
     </command>
 
     <command id="cmd.Pattern2">

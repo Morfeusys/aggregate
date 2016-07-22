@@ -1,5 +1,7 @@
 package com.converter.scriptconverter;
 
+import com.aggregate.api.Markup;
+import com.aggregate.api.Pattern;
 import com.aggregate.api.Request;
 import com.aggregate.api.Response;
 import io.vertx.core.AbstractVerticle;
@@ -79,17 +81,47 @@ public class ScriptConverter extends AbstractVerticle {
         vars.put("Contact", "");// TODO google contacts api (HTTP requests)
         vars.put("Hello", "дорогой пользователь"); // for testing purposes
 
-        
+        for (Markup markup : Request.fromMessage(m).markup.children) {
+
+            if (markup.name.equals(Pattern.TEXT)) {
+                if (markup.source != null || markup.source != "") vars.put(Pattern.TEXT, markup.source);
+            }
+            if (markup.name.equals(Pattern.NUMBER)) {
+                if (markup.value != null || markup.value != "") vars.put(Pattern.NUMBER, markup.value);
+            }
+            if (markup.name.equals(Pattern.DATE)) {
+                if (markup.source != null || markup.source != "") {
+                    vars.put(Pattern.DATE, markup.source);
+                    vars.put(Pattern.DATE + "_day", String.valueOf((int) markup.data.get("day")));
+                    vars.put(Pattern.DATE + "_month", String.valueOf((int) markup.data.get("month")));
+                    vars.put(Pattern.DATE + "_year", String.valueOf((int) markup.data.get("year")));
+                    vars.put(Pattern.DATE + "_fmt", vars.get(Pattern.DATE + "_day") + "." + vars.get(Pattern.DATE + "_month") + "." + vars.get(Pattern.DATE + "_year")); //// TODO add zero (21.6.2016)
+                    vars.put(Pattern.DATE + "_ts", ""); //// TODO need 01.01.2000 to UNIX time converter
+                }
+            }
+            if (markup.name.equals(Pattern.TIME)) {
+                if (markup.source != null || markup.source != "") {
+                    vars.put(Pattern.TIME, markup.source);
+                    vars.put(Pattern.TIME + "_hour", (String) markup.data.get("hour"));
+                    vars.put(Pattern.TIME + "_minute", (String) markup.data.get("minute"));
+                    vars.put(Pattern.TIME + "_second", (String) markup.data.get("second"));
+                    try {
+                        vars.put(Pattern.TIME + "_part", markup.data.get("part").equals("0") ? "AM" : "PM");
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        }
     }
 
     private void executeActions(Message m) {
         isSuspended = false;
         if (!isDoneCommandAction1 && !isSuspended) executeCommandAction1(m);
+        if (!isDoneStorageAction1 && !isSuspended) executeStorageAction1(m);
         if (!isDoneTtsAction1 && !isSuspended) executeTtsAction1(m);
         if (!isDoneDialogAction1 && !isSuspended) executeDialogAction1(m);
         if (!isDoneHttpAction1 && !isSuspended) executeHttpAction1(m);
         if (!isDoneIftttAction1 && !isSuspended) executeIftttAction1(m);
-        if (!isDoneStorageAction1 && !isSuspended) executeStorageAction1(m);
         scriptCompleted();
     }
 
@@ -148,12 +180,13 @@ public class ScriptConverter extends AbstractVerticle {
 
     private void executeStorageAction1(Message m) {
         String var = "";
-        String value = "jkhk";
+        String value = "upper low text";
 
         value = variablesSubstitution(value);
-        MicroMethods.evaluateExpression(value);
+        value = MicroMethods.evaluateExpression(value);
 
         vars.put(var, value);
+        log.info(value);
         isDoneStorageAction1 = true;
     }
 
@@ -168,20 +201,20 @@ public class ScriptConverter extends AbstractVerticle {
         isDoneStorageAction1 = false;
     }
 
-    private String variablesSubstitution(String replacingText){
+    private String variablesSubstitution(String replacingText) {
         Object[] varsArray = vars.keySet().toArray();
 
         for (int i = 0; i < vars.size(); i++) {
-            replacingText = replacingText.replace("$" + varsArray[i], vars.get(varsArray[i]));
+            replacingText = replacingText.replace("$" + varsArray[i], vars.get(varsArray[i]) == null ? "" : vars.get(varsArray[i]));
         }
         return replacingText;
     }
 
-    private String[] variablesSubstitution(String[] replacingText){
+    private String[] variablesSubstitution(String[] replacingText) {
         Object[] varsArray = vars.keySet().toArray();
         for (int i = 0; i < replacingText.length; i++) {
             for (int j = 0; j < vars.size(); j++) {
-                replacingText[i] = replacingText[i].replace("$" + varsArray[j], vars.get(varsArray[j]));
+                replacingText[i] = replacingText[i].replace("$" + varsArray[j], vars.get(varsArray[i]) == null ? "" : vars.get(varsArray[i]));
             }
         }
         return replacingText;
